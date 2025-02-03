@@ -1,0 +1,6 @@
+/venv
+__pycache__
+models/
+worker
+downloaded_images/
+generated_images/
