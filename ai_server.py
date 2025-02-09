@@ -28,14 +28,17 @@ IMAGE_STORAGE.mkdir(exist_ok=True)
 class LoggerService:
     #Servicio de logging en un proceso separado para evitar bloqueos.
     def __init__(self, log_file="server_log.txt"):
+        """Inicializa el servicio de logging"""
         self.log_file = log_file
 
     def start(self):
+        """Inicia un proceso separado para escribir logs sin bloquear el servidor."""
         self.queue = Queue()
         self.process = Process(target=self._log_writer, args=(self.queue,))
         self.process.start()
 
     def stop(self):
+        """Detiene el proceso de logging."""
         self.queue.put(None)  # Señal para detener el logger
         self.process.join()
 
@@ -77,6 +80,8 @@ def create_image(prompt: str, file_path: str):
 # Tarea de Celery
 @celery_app.task(name="generate_image")
 def generate_image(prompt: str, image_id: str):
+    """Genera una imagen con Stable Diffusion basada en un prompt.
+    Llama a create_image y maneja posibles errores."""
     try:
         print(f"🖼️ Generando imagen para: {prompt}")  # Agregar print para ver si llega aquí
         output_path = IMAGE_STORAGE / f"{image_id}.png"
@@ -90,6 +95,8 @@ def generate_image(prompt: str, image_id: str):
 class ImageServer:
     #Servidor HTTP asíncrono con IPv4 e IPv6 para la generación de imágenes.
     def __init__(self, ipv4_addr, ipv6_addr, port, logger_service):
+        """Inicializa el servidor con las direcciones y puerto especificados,
+        y el servicio de logging."""
         self.ipv4_addr = ipv4_addr
         self.ipv6_addr = ipv6_addr
         self.port = port
@@ -104,7 +111,7 @@ class ImageServer:
         self.app.router.add_get("/image/{image_id}", self.handle_download)
 
     async def start(self):
-        #Inicia el servidor en IPv4 e IPv6.
+        """Inicia el servidor en IPv4 e IPv6."""
         runner = web.AppRunner(self.app)
         await runner.setup()
 
@@ -163,7 +170,7 @@ class ImageServer:
         return web.json_response(response)
 
     async def handle_download(self, request):
-        """Devuelve la imagen generada si está disponible."""
+        """Permite descargar las imágenes generadas."""
         image_id = request.match_info["image_id"]
         image_path = IMAGE_STORAGE / f"{image_id}.png"
 
@@ -173,7 +180,11 @@ class ImageServer:
         return web.FileResponse(image_path)
 
 async def run_server():
-    """Ejecuta el servidor y maneja señales para su apagado limpio."""
+    """Función principal que:
+    - Configura los argumentos de línea de comandos
+    - Inicia el servicio de logging
+    - Inicia el servidor
+    - Maneja señales de terminación (Ctrl+C)"""
     parser = argparse.ArgumentParser(description="Servidor de Generación de Imágenes")
     parser.add_argument("--ipv4", type=str, default="0.0.0.0", help="Dirección IPv4")
     parser.add_argument("--ipv6", type=str, default="::", help="Dirección IPv6")

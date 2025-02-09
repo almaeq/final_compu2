@@ -11,7 +11,7 @@ class ImageClient:
         self.session = requests.Session()
 
     def request_image(self, prompt):
-        #Envía un prompt al servidor y solicita la generación de una imagen.
+        """Envía un prompt al servidor y solicita la generación de una imagen."""
         try:
             response = self.session.post(f"{self.base_url}/generate", json={"prompt": prompt})
             response.raise_for_status()
@@ -23,6 +23,7 @@ class ImageClient:
             return None, None
 
     def check_status(self, task_id):
+        """Consulta el estado de una tarea en el servidor."""
         try:
             response = self.session.get(f"{self.base_url}/status/{task_id}")
             response.raise_for_status()
@@ -34,7 +35,7 @@ class ImageClient:
             return None
 
     def wait_for_image(self, task_id):
-        #Consulta el estado de la tarea en intervalos hasta que la imagen esté lista.
+        """Consulta el estado de la tarea en intervalos hasta que la imagen esté lista."""
         print("⌛ Esperando a que la imagen se genere...")
         while True:
             status_data = self.check_status(task_id)
@@ -47,6 +48,7 @@ class ImageClient:
             time.sleep(3)
 
     def download_image(self, image_id, save_dir="downloaded_images"):
+        """Descarga una imagen generada por el servidor."""
         os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, f"{image_id}.png")
 
@@ -67,10 +69,18 @@ class ImageClient:
             return None
 
     def close(self):
+        """Cierra la sesión del cliente."""
         self.session.close()
 
 
 if __name__ == "__main__":
+    """
+    Ejemplo de uso del cliente:
+    1. Solicita al usuario un prompt para la imagen
+    2. Envía la solicitud al servidor
+    3. Espera a que la imagen se genere
+    4. Descarga la imagen generada
+    """
     client = ImageClient()
 
     # Solicitar generación de imagen
