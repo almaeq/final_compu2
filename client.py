@@ -7,6 +7,7 @@ BASE_URL = "http://localhost:8080"
 
 class ImageClient:    
     def __init__(self, base_url=BASE_URL):
+        """Inicializa el cliente con la URL del servidor y crea una sesión HTTP."""
         self.base_url = base_url
         self.session = requests.Session()
 
