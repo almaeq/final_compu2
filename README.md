@@ -1,71 +1,45 @@
-# Generador de Imágenes con IA
+ Generador de Imágenes con IA
 
-Este proyecto implementa un sistema cliente-servidor para la generación de imágenes utilizando Stable Diffusion.
+Sistema cliente-servidor para la generación de imágenes utilizando Stable Diffusion.
 
-## Características
+## 🚀 Características Principales
 
 - 🖼️ Generación de imágenes mediante prompts de texto
-- 🌐 Soporte para IPv4 e IPv6
-- 📊 Sistema de cola con Celery y Redis
+- 🌐 Soporte dual IPv4/IPv6
+- 📊 Sistema de cola distribuido
 - 📝 Registro de actividades
-- ⚡ Cliente asíncrono para solicitudes
+- ⚡ Cliente asíncrono
 
-## Requisitos Previos
+## 📋 Uso Básico
 
-- Python 3.8+
-- Redis Server
-- Torch
-- Token de Hugging Face
-
-## Instalación
-
-1. Clonar el repositorio:
-
+### Iniciar el Servidor
 ```bash
-git clone https://github.com/almaeq/final_compu2.git
-cd final_compu2
-```
-
-2. Instalar las dependencias:
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Configurar el servidor de Redis:
-
-```bash 
+# Iniciar Redis y Celery
 redis-server --save "" --appendonly no
-```
+celery -A ai_server worker --loglevel=info
 
-4. Iniciar el worker de Celery:
-
-```bash
-celery -A tasks worker --loglevel=info
-```
-
-5. Iniciar el servidor:
-
-```bash
+# Iniciar el servidor
 python ai_server.py
 ```
 
 ### Usar el Cliente
-
 ```bash
 python client.py
 ```
+Sigue las instrucciones en pantalla para generar imágenes.
 
-## Estructura del Proyecto
+## 🛠️ Configuración
 
-- `ai_server.py`: Servidor principal con la lógica de generación de imágenes
-- `client.py`: Cliente para interactuar con el servidor
-- `generated_images/`: Directorio donde se almacenan las imágenes generadas
-- `server_log.txt`: Registro de actividades del servidor
+Argumentos del servidor:
+```bash
+python ai_server.py --ipv4 0.0.0.0 --ipv6 :: --port 8080
+```
 
-## Configuración
+## 📁 Estructura
 
-El servidor acepta los siguientes argumentos:
-- `--ipv4`: Dirección IPv4 (default: 0.0.0.0)
-- `--ipv6`: Dirección IPv6 (default: ::)
-- `--port`: Puerto (default: 8080)
+- `ai_server.py`: Servidor principal
+- `client.py`: Cliente interactivo
+- `generated_images/`: Imágenes generadas
+- `server_log.txt`: Registro de actividades
+
+Para instrucciones detalladas de instalación, consulta [INSTALL.md](INSTALL.md).
