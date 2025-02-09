@@ -1,0 +1,91 @@
+Quiero armar una aplicación cliente-servidor donde:
+
+    El cliente:
+
+        Envía un prompt (una descripción textual) al servidor para solicitar la generación de una imagen.
+        Puede consultar el estado de la tarea de generación de la imagen.
+        Descarga la imagen generada una vez que esté lista.     
+        
+    El servidor:
+
+        Recibe el prompt del cliente y crea una tarea asíncrona para generar la imagen utilizando un modelo de IA (Stable Diffusion).
+        Usa Celery junto con Redis para gestionar las tareas de generación de imágenes de manera distribuida.
+        Guarda la imagen generada en un directorio local y permite al cliente descargarla.
+
+    Concurrencia y paralelismo:
+
+        Concurrencia: El servidor HTTP (usando aiohttp) maneja múltiples solicitudes de clientes de manera concurrente, sin bloquear el hilo principal.
+        Paralelismo: Las tareas de generación de imágenes se ejecutan en workers de Celery, que pueden distribuirse en múltiples núcleos de CPU o incluso en diferentes máquinas, permitiendo la ejecución paralela de tareas.
+
+    Comunicación asíncrona:
+
+        El cliente y el servidor se comunican mediante HTTP/JSON, donde el cliente envía solicitudes y el servidor responde con mensajes JSON.
+        El servidor y los workers de Celery se comunican de manera asíncrona usando Redis como broker de mensajes. El servidor envía tareas a la cola de Redis, y los workers las consumen y ejecutan.
+
+    Entidades y su interacción:
+
+        Cliente: Envía prompts y descarga imágenes.
+        Servidor HTTP: Recibe solicitudes, gestiona tareas y sirve imágenes.
+        Celery Workers: Ejecutan las tareas de generación de imágenes.
+        Redis: Actúa como intermediario entre el servidor y los workers, gestionando la cola de tareas.
+        LoggerService: Registra eventos en un archivo de texto en un proceso separado para evitar bloqueos en el servidor principal.
+        Stable Diffusion: Generar imágenes basadas en prompts, optimizar el uso de hardware.
+
+
+    Flujo de trabajo:
+
+        El cliente envía un prompt al servidor.
+        El servidor crea una tarea Celery y la envía a la cola de Redis.
+        Un worker de Celery consume la tarea, genera la imagen usando Stable Diffusion y la guarda en el sistema de archivos.
+        El cliente consulta el estado de la tarea y, una vez completada, descarga la imagen.
+
+    Mecanismos de IPC:
+
+        HTTP/JSON: Para la comunicación entre el cliente y el servidor.
+        Redis: Para la comunicación asíncrona entre el servidor y los workers de Celery.
+        Multiprocessing Queue: Para enviar logs desde el servidor al LoggerService.
+
+    Características adicionales:
+
+        UUIDs: Se utilizan para garantizar que cada imagen generada tenga un nombre único.
+        Asincronismo: Tanto el servidor HTTP como Celery están diseñados para operar de manera asíncrona, lo que mejora la eficiencia y la capacidad de manejar múltiples solicitudes.
+        Escalabilidad: El uso de Celery y Redis permite escalar horizontalmente añadiendo más workers o instancias del servidor.
+
+FUNCIONALIDADES DE LAS ENTIDADES:
+
+1. Cliente (client.py):
+
+    - Solicitar generación de imágenes
+    - Consultar el estado de una tarea
+    - Esperar a que la imagen esté lista
+    - Descargar la imagen generada
+    - Cerrar la sesión
+
+2. Servidor HTTP (ai_server.py):
+
+    - Manejar solicitudes de generación de imágenes
+    - Consultar el estado de una tarea
+    - Servir imágenes generadas
+    - Iniciar y detener el servidor
+    - Registrar logs
+
+3. Celery Worker (ai_server.py):
+
+    - Generar imágenes
+    - Manejar errores
+
+4. LoggerService (ai_server.py):
+
+    - Escribir logs
+    - Manejar logs de manera asíncrona
+
+5. Redis Broker:
+
+    - Almacenar tareas
+    - Distribuir tareas
+
+
+6. Stable Diffusion (Modelo IA):
+
+    - Generar imágenes
+    - Optimizar el uso de hardware

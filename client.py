@@ -5,15 +5,13 @@ import os
 # URL base del servidor
 BASE_URL = "http://localhost:8080"
 
-class ImageClient:
-    """Cliente HTTP para interactuar con el servidor de generación de imágenes."""
-    
+class ImageClient:    
     def __init__(self, base_url=BASE_URL):
         self.base_url = base_url
         self.session = requests.Session()
 
     def request_image(self, prompt):
-        """Envía un prompt al servidor y solicita la generación de una imagen."""
+        #Envía un prompt al servidor y solicita la generación de una imagen.
         try:
             response = self.session.post(f"{self.base_url}/generate", json={"prompt": prompt})
             response.raise_for_status()
@@ -25,7 +23,6 @@ class ImageClient:
             return None, None
 
     def check_status(self, task_id):
-        """Consulta el estado de una tarea de generación de imagen."""
         try:
             response = self.session.get(f"{self.base_url}/status/{task_id}")
             response.raise_for_status()
@@ -37,7 +34,7 @@ class ImageClient:
             return None
 
     def wait_for_image(self, task_id):
-        """Consulta el estado de la tarea en intervalos hasta que la imagen esté lista."""
+        #Consulta el estado de la tarea en intervalos hasta que la imagen esté lista.
         print("⌛ Esperando a que la imagen se genere...")
         while True:
             status_data = self.check_status(task_id)
@@ -50,7 +47,6 @@ class ImageClient:
             time.sleep(3)
 
     def download_image(self, image_id, save_dir="downloaded_images"):
-        """Descarga la imagen generada y la guarda en disco."""
         os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, f"{image_id}.png")
 
@@ -71,7 +67,6 @@ class ImageClient:
             return None
 
     def close(self):
-        """Cierra la sesión HTTP."""
         self.session.close()
 
 

@@ -26,7 +26,7 @@ IMAGE_STORAGE = Path("./generated_images")
 IMAGE_STORAGE.mkdir(exist_ok=True)
 
 class LoggerService:
-    """Servicio de logging en un proceso separado para evitar bloqueos."""
+    #Servicio de logging en un proceso separado para evitar bloqueos.
     def __init__(self, log_file="server_log.txt"):
         self.log_file = log_file
 
@@ -46,7 +46,7 @@ class LoggerService:
     def _log_writer(self, queue):
         """Proceso separado para escribir logs sin bloquear el servidor."""
         while True:
-            log_entry = queue.get()
+            log_entry =  queue.get()
             if log_entry is None:
                 break
             log_entry["timestamp"] = datetime.datetime.now().isoformat()
@@ -67,7 +67,7 @@ def create_image(prompt: str, file_path: str):
     print(f"🎨 Generando imagen con IA para: {prompt}")
     
     # Generar la imagen
-    image = pipe(prompt, num_inference_steps=20, guidance_scale=7.5).images[0]  # Reducimos pasos
+    image = pipe(prompt, num_inference_steps=20, guidance_scale=7.5).images[0]  
 
     # Guardar la imagen
     image.save(file_path)
@@ -88,7 +88,7 @@ def generate_image(prompt: str, image_id: str):
         raise e  # Para que Celery lo registre como error
 
 class ImageServer:
-    """Servidor HTTP asíncrono con IPv4 e IPv6 para la generación de imágenes."""
+    #Servidor HTTP asíncrono con IPv4 e IPv6 para la generación de imágenes.
     def __init__(self, ipv4_addr, ipv6_addr, port, logger_service):
         self.ipv4_addr = ipv4_addr
         self.ipv6_addr = ipv6_addr
@@ -104,7 +104,7 @@ class ImageServer:
         self.app.router.add_get("/image/{image_id}", self.handle_download)
 
     async def start(self):
-        """Inicia el servidor en IPv4 e IPv6."""
+        #Inicia el servidor en IPv4 e IPv6.
         runner = web.AppRunner(self.app)
         await runner.setup()
 
