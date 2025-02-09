@@ -58,7 +58,6 @@ class LoggerService:
 
 # Cargar el modelo de Stable Diffusion (solo una vez)
 login()
-#MODEL_PATH = "models/diffusers/stable-diffusion-v1-5"
 pipe = DiffusionPipeline.from_pretrained("stable-diffusion-v1-5/stable-diffusion-v1-5", torch_dtype=torch.float32)
 
 # Usar GPU si está disponible, si no, usar CPU
