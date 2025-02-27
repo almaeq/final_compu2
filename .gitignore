@@ -4,3 +4,7 @@ models/
 worker
 downloaded_images/
 generated_images/
+.env
+server_log.txt
+*.log
+dump.rdb

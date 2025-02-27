@@ -1,3 +1,4 @@
+import os
 import argparse
 import asyncio
 import signal
@@ -12,22 +13,25 @@ from PIL import Image, ImageDraw, ImageFont
 from diffusers import DiffusionPipeline
 import torch
 from huggingface_hub import login
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Configuración de Celery
 celery_app = Celery(
     "image_tasks",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/1"
+    broker=os.getenv("CELERY_BROKER_URL"),
+    backend=os.getenv("CELERY_BACKEND_URL")
 )
 celery_app.autodiscover_tasks(["ai_server"])
 # Directorio de imágenes generadas
-IMAGE_STORAGE = Path("./generated_images")
+IMAGE_STORAGE = Path(os.getenv("IMAGE_STORAGE_PATH", "./generated_images"))
 IMAGE_STORAGE.mkdir(exist_ok=True)
 
 class LoggerService:
     #Servicio de logging en un proceso separado para evitar bloqueos.
-    def __init__(self, log_file="server_log.txt"):
+    def __init__(self, log_file=os.getenv("LOG_FILE", "server_log.txt")):
         """Inicializa el servicio de logging"""
         self.log_file = log_file
 
@@ -57,7 +61,17 @@ class LoggerService:
                 log_file.write(json.dumps(log_entry) + "\n")
 
 # Cargar el modelo de Stable Diffusion (solo una vez)
-login()
+HF_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
+if not HF_TOKEN:
+    print("⚠️  No se encontró un token de Hugging Face.")
+    print("🔑  Debes generar un token en: https://huggingface.co/settings/tokens")
+    print("💡  Luego, agrega el token en un archivo .env con:")
+    print("     HUGGINGFACE_TOKEN=tu_token_aqui")
+    exit(1)  # Sale del script si no hay token
+
+# Iniciar sesión con el token
+login(HF_TOKEN)
+print("✅  Autenticado en Hugging Face")
 pipe = DiffusionPipeline.from_pretrained("stable-diffusion-v1-5/stable-diffusion-v1-5", torch_dtype=torch.float32)
 
 # Usar GPU si está disponible, si no, usar CPU
@@ -185,9 +199,9 @@ async def run_server():
     - Inicia el servidor
     - Maneja señales de terminación (Ctrl+C)"""
     parser = argparse.ArgumentParser(description="Servidor de Generación de Imágenes")
-    parser.add_argument("--ipv4", type=str, default="0.0.0.0", help="Dirección IPv4")
-    parser.add_argument("--ipv6", type=str, default="::", help="Dirección IPv6")
-    parser.add_argument("--port", type=int, default=8080, help="Puerto")
+    parser.add_argument("--ipv4", type=str, default=os.getenv("SERVER_IPV4", "0.0.0.0"), help="Dirección IPv4")
+    parser.add_argument("--ipv6", type=str, default=os.getenv("SERVER_IPV6", "::"), help="Dirección IPv6")
+    parser.add_argument("--port", type=int, default=int(os.getenv("SERVER_PORT", 8080)), help="Puerto")
     args = parser.parse_args()
 
     logger_service = LoggerService()

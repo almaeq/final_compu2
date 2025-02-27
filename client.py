@@ -1,9 +1,13 @@
 import requests
 import time
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 # URL base del servidor
-BASE_URL = "http://localhost:8080"
+BASE_URL = os.getenv("SERVER_URL", "http://localhost:8080")
 
 class ImageClient:    
     def __init__(self, base_url=BASE_URL):
@@ -48,7 +52,7 @@ class ImageClient:
 
             time.sleep(3)
 
-    def download_image(self, image_id, save_dir="downloaded_images"):
+    def download_image(self, image_id, save_dir=os.getenv("DOWNLOAD_PATH", "downloaded_images")):
         """Descarga una imagen generada por el servidor."""
         os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, f"{image_id}.png")
