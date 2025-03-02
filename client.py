@@ -2,6 +2,9 @@ import requests
 import time
 import os
 from dotenv import load_dotenv
+from PIL import Image
+from io import BytesIO
+import subprocess
 
 # Cargar variables de entorno
 load_dotenv()
@@ -52,25 +55,50 @@ class ImageClient:
 
             time.sleep(3)
 
-    def download_image(self, image_id, save_dir=os.getenv("DOWNLOAD_PATH", "downloaded_images")):
-        """Descarga una imagen generada por el servidor."""
-        os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, f"{image_id}.png")
-
+    def preview_image(self, image_id):
+        """Descarga y muestra la imagen sin guardarla."""
         try:
             response = self.session.get(f"{self.base_url}/image/{image_id}", stream=True)
             if response.status_code == 404:
                 print("❌ Imagen no encontrada en el servidor.")
                 return None
 
+            image = Image.open(BytesIO(response.content))
+
+        # En lugar de `Image.show()`, usa `subprocess` para abrir con otro visor
+            temp_path = f"/tmp/{image_id}.png"
+            image.save(temp_path)  # Guarda la imagen temporalmente
+            subprocess.run(["xdg-open", temp_path])  # Abrir con el visor predeterminado en Linux
+
+            return response.content  # Devuelve los datos de la imagen
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error al obtener la imagen: {e}")
+            return None
+
+    def download_image(self, image_id, image_data):
+        """Guarda la imagen generada en un archivo."""
+        try:
+        # Obtener la ruta desde el .env o usar "downloaded_images" como predeterminado
+            save_dir = os.getenv("DOWNLOAD_PATH", "downloaded_images").strip()
+
+        # Validar que no sea una ruta inválida
+            if not save_dir or save_dir in [".", "./", "/", ""]:
+                print("⚠️ Ruta de descarga inválida, usando la predeterminada: downloaded_images")
+                save_dir = "downloaded_images"
+
+        # Crear el directorio si no existe (evitar recursión infinita)
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir, exist_ok=True)
+
+            save_path = os.path.join(save_dir, f"{image_id}.png")
+
             with open(save_path, "wb") as file:
-                for chunk in response.iter_content(1024):
-                    file.write(chunk)
+                file.write(image_data)
 
             print(f"✅ Imagen descargada en: {save_path}")
-            return save_path
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Error al descargar la imagen: {e}")
+            return save_path    
+        except Exception as e:
+            print(f"❌ Error al guardar la imagen: {e}")
             return None
 
     def close(self):
@@ -84,7 +112,8 @@ if __name__ == "__main__":
     1. Solicita al usuario un prompt para la imagen
     2. Envía la solicitud al servidor
     3. Espera a que la imagen se genere
-    4. Descarga la imagen generada
+    4. Muestra la imagen antes de descargarla
+    5. Pregunta si se quiere guardar
     """
     client = ImageClient()
 
@@ -96,8 +125,16 @@ if __name__ == "__main__":
         # Esperar a que la imagen esté lista
         image_path = client.wait_for_image(task_id)
         if image_path:
-            # Descargar imagen
-            client.download_image(image_id)
+            # Mostrar la imagen antes de descargarla
+            image_data = client.preview_image(image_id)
+            
+            if image_data:
+                # Preguntar si se quiere guardar la imagen
+                save_option = input("💾 ¿Quieres descargar la imagen? (s/n): ").strip().lower()
+                if save_option == "s":
+                    client.download_image(image_id, image_data)
+                else:
+                    print("🚫 Imagen no descargada.")
         else:
             print("❌ No se pudo generar la imagen.")
     
