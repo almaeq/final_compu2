@@ -5,21 +5,26 @@ from dotenv import load_dotenv
 from PIL import Image
 from io import BytesIO
 import subprocess
+import argparse
 
-# Cargar variables de entorno
 load_dotenv()
 
-# URL base del servidor
-BASE_URL = os.getenv("SERVER_URL", "http://localhost:8080")
+def get_client_config():
+    parser = argparse.ArgumentParser(description="Cliente de generación de imágenes")
+
+    server_url_env = os.getenv("SERVER_URL")
+
+    parser.add_argument("--server-url", type=str, default=server_url_env if server_url_env else "http://localhost:8080",
+                        help="URL del servidor (IPv4 o IPv6)")
+
+    return parser.parse_args()
 
 class ImageClient:    
-    def __init__(self, base_url=BASE_URL):
-        """Inicializa el cliente con la URL del servidor y crea una sesión HTTP."""
+    def __init__(self, base_url):
         self.base_url = base_url
         self.session = requests.Session()
 
     def request_image(self, prompt):
-        """Envía un prompt al servidor y solicita la generación de una imagen."""
         try:
             response = self.session.post(f"{self.base_url}/generate", json={"prompt": prompt})
             response.raise_for_status()
@@ -31,7 +36,6 @@ class ImageClient:
             return None, None
 
     def check_status(self, task_id):
-        """Consulta el estado de una tarea en el servidor."""
         try:
             response = self.session.get(f"{self.base_url}/status/{task_id}")
             response.raise_for_status()
@@ -43,7 +47,6 @@ class ImageClient:
             return None
 
     def wait_for_image(self, task_id):
-        """Consulta el estado de la tarea en intervalos hasta que la imagen esté lista."""
         print("⌛ Esperando a que la imagen se genere...")
         while True:
             status_data = self.check_status(task_id)
@@ -56,7 +59,6 @@ class ImageClient:
             time.sleep(3)
 
     def preview_image(self, image_id):
-        """Descarga y muestra la imagen sin guardarla."""
         try:
             response = self.session.get(f"{self.base_url}/image/{image_id}", stream=True)
             if response.status_code == 404:
@@ -64,29 +66,21 @@ class ImageClient:
                 return None
 
             image = Image.open(BytesIO(response.content))
-
-        # En lugar de `Image.show()`, usa `subprocess` para abrir con otro visor
             temp_path = f"/tmp/{image_id}.png"
-            image.save(temp_path)  # Guarda la imagen temporalmente
-            subprocess.run(["xdg-open", temp_path])  # Abrir con el visor predeterminado en Linux
+            image.save(temp_path)
+            subprocess.run(["xdg-open", temp_path])
 
-            return response.content  # Devuelve los datos de la imagen
+            return response.content
         except requests.exceptions.RequestException as e:
             print(f"❌ Error al obtener la imagen: {e}")
             return None
 
-    def download_image(self, image_id, image_data):
-        """Guarda la imagen generada en un archivo."""
+    def download_image(self, image_id, image_data, save_dir):
         try:
-        # Obtener la ruta desde el .env o usar "downloaded_images" como predeterminado
-            save_dir = os.getenv("DOWNLOAD_PATH", "downloaded_images").strip()
-
-        # Validar que no sea una ruta inválida
             if not save_dir or save_dir in [".", "./", "/", ""]:
                 print("⚠️ Ruta de descarga inválida, usando la predeterminada: downloaded_images")
                 save_dir = "downloaded_images"
 
-        # Crear el directorio si no existe (evitar recursión infinita)
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir, exist_ok=True)
 
@@ -102,40 +96,30 @@ class ImageClient:
             return None
 
     def close(self):
-        """Cierra la sesión del cliente."""
         self.session.close()
 
-
 if __name__ == "__main__":
-    """
-    Ejemplo de uso del cliente:
-    1. Solicita al usuario un prompt para la imagen
-    2. Envía la solicitud al servidor
-    3. Espera a que la imagen se genere
-    4. Muestra la imagen antes de descargarla
-    5. Pregunta si se quiere guardar
-    """
-    client = ImageClient()
+    args = get_client_config()
+    download_path = os.getenv("DOWNLOAD_PATH", "downloaded_images").strip()
 
-    # Solicitar generación de imagen
-    prompt = input("📝 Introduce el prompt para la imagen: ")
-    task_id, image_id = client.request_image(prompt)
+    client = ImageClient(base_url=args.server_url)
 
-    if task_id and image_id:
-        # Esperar a que la imagen esté lista
-        image_path = client.wait_for_image(task_id)
-        if image_path:
-            # Mostrar la imagen antes de descargarla
-            image_data = client.preview_image(image_id)
-            
-            if image_data:
-                # Preguntar si se quiere guardar la imagen
-                save_option = input("💾 ¿Quieres descargar la imagen? (s/n): ").strip().lower()
-                if save_option == "s":
-                    client.download_image(image_id, image_data)
-                else:
-                    print("🚫 Imagen no descargada.")
-        else:
-            print("❌ No se pudo generar la imagen.")
-    
-    client.close()
+    try:
+        prompt = input("📝 Introduce el prompt para la imagen: ")
+        task_id, image_id = client.request_image(prompt)
+
+        if task_id and image_id:
+            image_path = client.wait_for_image(task_id)
+            if image_path:
+                image_data = client.preview_image(image_id)
+
+                if image_data:
+                    save_option = input("💾 ¿Quieres descargar la imagen? (s/n): ").strip().lower()
+                    if save_option == "s":
+                        client.download_image(image_id, image_data, download_path)
+                    else:
+                        print("🚫 Imagen no descargada.")
+            else:
+                print("❌ No se pudo generar la imagen.")
+    finally:
+        client.close()

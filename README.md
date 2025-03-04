@@ -18,13 +18,18 @@ Sistema cliente-servidor para la generación de imágenes utilizando Stable Diff
 redis-server --save "" --appendonly no
 celery -A ai_server worker --loglevel=info
 
-# Iniciar el servidor
-python ai_server.py
-```
+# Iniciar el servidor en ipv6
+python ai_server.py --ipv4 "" --ipv6 "::" --port 8080
+# Iniciar el servidor en ipv4
+python ai_server.py --ipv4 "0.0.0.0" --ipv6 "" --port 8080
+``` 
 
 ### Usar el Cliente
 ```bash
-python client.py
+# Usar el cliente en ipv6
+python client.py --server-url http://[::1]:8080
+# Usar el cliente en ipv4
+python client.py --server-url http://127.0.0.1:8080
 ```
 Sigue las instrucciones en pantalla para generar imágenes.
 

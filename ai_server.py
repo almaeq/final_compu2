@@ -29,6 +29,22 @@ celery_app.autodiscover_tasks(["ai_server"])
 IMAGE_STORAGE = Path(os.getenv("IMAGE_STORAGE_PATH", "./generated_images"))
 IMAGE_STORAGE.mkdir(exist_ok=True)
 
+def get_server_config():
+    parser = argparse.ArgumentParser(description="Servidor de Generación de Imágenes")
+
+    ipv4_env = os.getenv("SERVER_IPV4")
+    ipv6_env = os.getenv("SERVER_IPV6")
+    port_env = os.getenv("SERVER_PORT")
+
+    parser.add_argument("--ipv4", type=str, default=ipv4_env if ipv4_env is not None else "0.0.0.0",
+                        help="Dirección IPv4 (vacío para desactivar)")
+    parser.add_argument("--ipv6", type=str, default=ipv6_env if ipv6_env is not None else "::",
+                        help="Dirección IPv6 (vacío para desactivar)")
+    parser.add_argument("--port", type=int, default=int(port_env) if port_env else 8080,
+                        help="Puerto del servidor HTTP")
+
+    return parser.parse_args()
+
 class LoggerService:
     #Servicio de logging en un proceso separado para evitar bloqueos.
     def __init__(self, log_file=os.getenv("LOG_FILE", "server_log.txt")):
@@ -124,23 +140,31 @@ class ImageServer:
         self.app.router.add_get("/image/{image_id}", self.handle_download)
 
     async def start(self):
-        """Inicia el servidor en IPv4 e IPv6."""
+        """Inicia el servidor solo en las direcciones configuradas."""
         runner = web.AppRunner(self.app)
         await runner.setup()
 
-        self.site_ipv4 = web.TCPSite(runner, self.ipv4_addr, self.port)
-        await self.site_ipv4.start()
-        print(f"✅ Servidor iniciado en IPv4: http://{self.ipv4_addr}:{self.port}")
+        if self.ipv4_addr:
+            self.site_ipv4 = web.TCPSite(runner, self.ipv4_addr, self.port)
+            await self.site_ipv4.start()
+            print(f"✅ Servidor iniciado en IPv4: http://{self.ipv4_addr}:{self.port}")
+        else:
+            self.site_ipv4 = None
 
-        self.site_ipv6 = web.TCPSite(runner, self.ipv6_addr, self.port)
-        await self.site_ipv6.start()
-        print(f"✅ Servidor iniciado en IPv6: http://[{self.ipv6_addr}]:{self.port}")
+        if self.ipv6_addr:
+            self.site_ipv6 = web.TCPSite(runner, self.ipv6_addr, self.port)
+            await self.site_ipv6.start()
+            print(f"✅ Servidor iniciado en IPv6: http://[{self.ipv6_addr}]:{self.port}")
+        else:
+            self.site_ipv6 = None
 
     async def stop(self):
         """Detiene el servidor limpiamente."""
         print("⏹️  Apagando el servidor...")
-        await self.site_ipv4.stop()
-        await self.site_ipv6.stop()
+        if self.site_ipv4:
+            await self.site_ipv4.stop()
+        if self.site_ipv6:
+            await self.site_ipv6.stop()
 
     async def handle_generate(self, request):
         """Maneja la solicitud de generación de imágenes."""
@@ -193,21 +217,17 @@ class ImageServer:
         return web.FileResponse(image_path)
 
 async def run_server():
-    """Función principal que:
-    - Configura los argumentos de línea de comandos
-    - Inicia el servicio de logging
-    - Inicia el servidor
-    - Maneja señales de terminación (Ctrl+C)"""
-    parser = argparse.ArgumentParser(description="Servidor de Generación de Imágenes")
-    parser.add_argument("--ipv4", type=str, default=os.getenv("SERVER_IPV4", "0.0.0.0"), help="Dirección IPv4")
-    parser.add_argument("--ipv6", type=str, default=os.getenv("SERVER_IPV6", "::"), help="Dirección IPv6")
-    parser.add_argument("--port", type=int, default=int(os.getenv("SERVER_PORT", 8080)), help="Puerto")
-    args = parser.parse_args()
+    args = get_server_config()
 
     logger_service = LoggerService()
     logger_service.start()
 
-    server = ImageServer(args.ipv4, args.ipv6, args.port, logger_service)
+    server = ImageServer(
+        args.ipv4 if args.ipv4 != "" else None,
+        args.ipv6 if args.ipv6 != "" else None,
+        args.port,
+        logger_service
+    )
 
     stop_signal = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -224,3 +244,4 @@ async def run_server():
 
 if __name__ == "__main__":
     asyncio.run(run_server())
+

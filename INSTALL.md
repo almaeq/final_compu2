@@ -40,10 +40,20 @@ celery -A ai_server worker --loglevel=info
 
 3. Iniciar servidor:
 ```bash
+# Iniciar el servidor en ipv6
+python ai_server.py --ipv4 "" --ipv6 "::" --port 8080
+# Iniciar el servidor en ipv4
+python ai_server.py --ipv4 "0.0.0.0" --ipv6 "" --port 8080
+# Iniciar el servidor sin argumentos
 python ai_server.py
 ```
 
 4. Usar cliente:
 ```bash
+# Usar el cliente en ipv6
+python client.py --server-url http://[::1]:8080
+# Usar el cliente en ipv4
+python client.py --server-url http://127.0.0.1:8080
+# Usar el cliente sin argumentos
 python client.py
 ```
