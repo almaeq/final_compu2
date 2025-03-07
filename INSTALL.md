@@ -26,6 +26,9 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+4. Token de Hugging Face:
+Iniciar sesión en Hugging Face, ir a settings y crear un token que sea FINEGRAINED. Solo marcar la opcion que dice "Read access to contents of all public gated repos you can access"
+
 ## Despliegue
 
 1. Iniciar Redis:
