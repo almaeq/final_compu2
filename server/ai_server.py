@@ -24,7 +24,7 @@ celery_app = Celery(
     broker=os.getenv("CELERY_BROKER_URL"),
     backend=os.getenv("CELERY_BACKEND_URL")
 )
-celery_app.autodiscover_tasks(["ai_server"])
+celery_app.autodiscover_tasks(["server.ai_server"])
 # Directorio de imágenes generadas
 IMAGE_STORAGE = Path(os.getenv("IMAGE_STORAGE_PATH", "./generated_images"))
 IMAGE_STORAGE.mkdir(exist_ok=True)
