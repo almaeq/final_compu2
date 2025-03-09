@@ -38,7 +38,7 @@ redis-server
 
 2. Iniciar Celery:
 ```bash
-celery -A ai_server worker --loglevel=info
+celery -A server.ai_server worker --loglevel=info
 ```
 
 3. Iniciar servidor:
