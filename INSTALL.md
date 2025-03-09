@@ -33,7 +33,7 @@ Iniciar sesión en Hugging Face, ir a settings y crear un token que sea FINEGRAI
 
 1. Iniciar Redis:
 ```bash
-redis-server --save "" --appendonly no
+redis-server 
 ```
 
 2. Iniciar Celery:
@@ -43,6 +43,8 @@ celery -A ai_server worker --loglevel=info
 
 3. Iniciar servidor:
 ```bash
+# Entrar a la carpeta server
+cd server
 # Iniciar el servidor en ipv6
 python ai_server.py --ipv4 "" --ipv6 "::" --port 8080
 # Iniciar el servidor en ipv4
@@ -53,6 +55,8 @@ python ai_server.py
 
 4. Usar cliente:
 ```bash
+# Entrar a la carpeta client
+cd client
 # Usar el cliente en ipv6
 python client.py --server-url http://[::1]:8080
 # Usar el cliente en ipv4

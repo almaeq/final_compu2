@@ -68,7 +68,7 @@ class ImageClient:
             image = Image.open(BytesIO(response.content))
             temp_path = f"/tmp/{image_id}.png"
             image.save(temp_path)
-            subprocess.run(["xdg-open", temp_path])
+            subprocess.run(["xdg-open", temp_path])# abre la imagen 
 
             return response.content
         except requests.exceptions.RequestException as e:
